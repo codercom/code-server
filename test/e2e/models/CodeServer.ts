@@ -81,25 +81,10 @@ export class CodeServer {
    * visible already.
    */
   async focusTerminal() {
-    // Click [aria-label="Application Menu"] div[role="none"]
-    await this.page.click('[aria-label="Application Menu"] div[role="none"]')
+    // Execute the focus terminal command via the command palette.
+    await this.runCommandFromPalette("Terminal: Focus Terminal")
 
-    // Click text=View
-    await this.page.hover("text=View")
-    await this.page.click("text=View")
-
-    // Click text=Command Palette
-    await this.page.hover("text=Command Palette")
-    await this.page.click("text=Command Palette")
-
-    // Type Terminal: Focus Terminal
-    await this.page.keyboard.type("Terminal: Focus Terminal")
-
-    // Click Terminal: Focus Terminal
-    await this.page.hover("text=Terminal: Focus Terminal")
-    await this.page.click("text=Terminal: Focus Terminal")
-
-    // Wait for terminal textarea to show up
+    // Wait for terminal textarea to show up.
     await this.page.waitForSelector("textarea.xterm-helper-textarea")
   }
 
@@ -112,5 +97,33 @@ export class CodeServer {
   async setup() {
     await this.navigate()
     await this.reloadUntilEditorIsReady()
+  }
+
+  /**
+   * Run a command via the command palette.
+   */
+  async runCommandFromPalette(command: string) {
+    await this.runCommandFromMenu(["View", "Command Palette"])
+
+    // Type the command we want.
+    await this.page.keyboard.type(command)
+
+    // Click on the matching command.
+    await this.page.hover(`text=${command}`)
+    await this.page.click(`text=${command}`)
+  }
+
+  /**
+   * Run a command from the application menu.
+   */
+  async runCommandFromMenu(menus: string[]) {
+    // Open the application menu.
+    await this.page.click('[aria-label="Application Menu"] div[role="none"]')
+
+    // Open each sub-menu in turn.
+    for (const menu of menus) {
+      await this.page.hover(`text=${menu}`)
+      await this.page.click(`text=${menu}`)
+    }
   }
 }
