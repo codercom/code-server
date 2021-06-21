@@ -174,6 +174,7 @@ export class ExtensionHostConnection extends Connection {
 			{
 				env: {
 					...process.env,
+					...(this.params.env || {}),
 					VSCODE_AMD_ENTRYPOINT: 'vs/workbench/services/extensions/node/extensionHostProcess',
 					VSCODE_PIPE_LOGGING: 'true',
 					VSCODE_VERBOSE_LOGGING: 'true',
