@@ -499,12 +499,6 @@ export class TerminalProviderChannel implements IServerChannel<RemoteAgentConnec
 			return args.configuration['terminal.integrated.env.linux'];
 		};
 
-		const getNonInheritedEnv = async (): Promise<platform.IProcessEnvironment> => {
-			const env = await getMainProcessParentEnv(process.env);
-			env.VSCODE_IPC_HOOK_CLI = process.env['VSCODE_IPC_HOOK_CLI']!;
-			return env;
-		};
-
 		const env = terminalEnvironment.createTerminalEnvironment(
 			shellLaunchConfig,
 			getEnvFromConfig(),
@@ -513,8 +507,11 @@ export class TerminalProviderChannel implements IServerChannel<RemoteAgentConnec
 			args.configuration['terminal.integrated.detectLocale'],
 			args.configuration['terminal.integrated.inheritEnv'] !== false
 				? process.env as platform.IProcessEnvironment
-				: await getNonInheritedEnv()
+				: await getMainProcessParentEnv(process.env)
 		);
+
+		env.VSCODE_PROXY_URI = args.resolverEnv?.VSCODE_PROXY_URI || process.env.VSCODE_PROXY_URI;
+		env.VSCODE_IPC_HOOK_CLI = process.env.VSCODE_IPC_HOOK_CLI;
 
 		// Apply extension environment variable collections to the environment.
 		if (!shellLaunchConfig.strictEnv) {
