@@ -8,6 +8,8 @@ import { RemoteAuthorities } from 'vs/base/common/network';
 import { URI } from 'vs/base/common/uri';
 import { Emitter } from 'vs/base/common/event';
 import { Disposable } from 'vs/base/common/lifecycle';
+import { Options } from 'vs/ipc';
+import { getOptions } from 'vs/server/common/util';
 
 export class RemoteAuthorityResolverService extends Disposable implements IRemoteAuthorityResolverService {
 
@@ -55,11 +57,14 @@ export class RemoteAuthorityResolverService extends Disposable implements IRemot
 
 	private _doResolveAuthority(authority: string): ResolverResult {
 		const connectionToken = this._connectionTokens.get(authority) || this._connectionToken;
+		// NOTE@coder: Add the proxy URI to the environment for use in the remote.
+		const options = getOptions<Options>();
+		const extensionHostEnv = { VSCODE_PROXY_URI: `${window.location.origin}${options.base}/proxy/{port}` };
 		if (authority.indexOf(':') >= 0) {
 			const pieces = authority.split(':');
-			return { authority: { authority, host: pieces[0], port: parseInt(pieces[1], 10), connectionToken } };
+			return { authority: { authority, host: pieces[0], port: parseInt(pieces[1], 10), connectionToken }, options: { extensionHostEnv } };
 		}
-		return { authority: { authority, host: authority, port: 80, connectionToken } };
+		return { authority: { authority, host: authority, port: 80, connectionToken }, options: { extensionHostEnv } };
 	}
 
 	_clearResolvedAuthority(authority: string): void {
