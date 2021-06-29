@@ -381,7 +381,7 @@ jobs:
 
       - name: Run end-to-end tests
         run: |
-          ./release-packages/code-server*-linux-amd64/bin/code-server --log trace &
+          ./release-packages/code-server*-linux-amd64/bin/code-server --log trace --extensions-dir ./test/e2e/extensions &
           yarn test:e2e
 
       - name: Upload test artifacts

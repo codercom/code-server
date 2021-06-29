@@ -3,7 +3,6 @@ import {
   arrayify,
   generateUuid,
   getFirstString,
-  getOptions,
   logError,
   plural,
   resolveBase,
@@ -11,7 +10,7 @@ import {
   trimSlashes,
   normalize,
 } from "../../src/common/util"
-import { createLoggerMock } from "../utils/helpers"
+import { createLoggerMock, spyOnConsole } from "../utils/helpers"
 
 const dom = new JSDOM()
 global.document = dom.window.document
@@ -122,7 +121,15 @@ describe("util", () => {
   })
 
   describe("getOptions", () => {
+    let getOptions: typeof import("../../src/common/util").getOptions
+
     beforeEach(() => {
+      // Reset and re-import since the options are cached.
+      jest.resetModules()
+      getOptions = require("../../src/common/util").getOptions
+
+      spyOnConsole()
+
       const location: LocationLike = {
         pathname: "/healthz",
         origin: "http://localhost:8080",
@@ -146,44 +153,63 @@ describe("util", () => {
         base: "",
         csStaticBase: "",
       })
+      expect(console.error).toBeCalledTimes(1)
     })
 
     it("should return options when they do exist", () => {
+      const expected = {
+        base: ".",
+        csStaticBase: "./static/development/Users/jp/Dev/code-server",
+        logLevel: 2,
+        disableTelemetry: false,
+        disableUpdateCheck: false,
+      }
+
       // Mock getElementById
       const spy = jest.spyOn(document, "getElementById")
-      // Create a fake element and set the attribute
+      // Create a fake element and set the attribute. Options are expected to be
+      // stringified JSON.
       const mockElement = document.createElement("div")
-      mockElement.setAttribute(
-        "data-settings",
-        '{"base":".","csStaticBase":"./static/development/Users/jp/Dev/code-server","logLevel":2,"disableTelemetry":false,"disableUpdateCheck":false}',
-      )
+      mockElement.setAttribute("data-settings", JSON.stringify(expected))
       // Return mockElement from the spy
       // this way, when we call "getElementById"
       // it returns the element
       spy.mockImplementation(() => mockElement)
 
       expect(getOptions()).toStrictEqual({
+        ...expected,
+        // The two bases should get resolved. The rest should be unchanged.
         base: "",
         csStaticBase: "/static/development/Users/jp/Dev/code-server",
-        disableTelemetry: false,
-        disableUpdateCheck: false,
-        logLevel: 2,
       })
+      expect(console.error).toBeCalledTimes(0)
     })
 
-    it("should include queryOpts", () => {
-      // Trying to understand how the implementation works
-      // 1. It grabs the search params from location.search (i.e. ?)
-      // 2. it then grabs the "options" param if it exists
-      // 3. then it creates a new options object
-      // spreads the original options
-      // then parses the queryOpts
-      location.search = '?options={"logLevel":2}'
+    it("should merge options in the query", () => {
+      // Options provided in the query will override any options provided in the
+      // HTML. Options are expected to be stringified JSON (same as the
+      // element).
+      const expected = {
+        logLevel: 2,
+      }
+      location.search = `?options=${JSON.stringify(expected)}`
+      expect(getOptions()).toStrictEqual({
+        ...expected,
+        base: "",
+        csStaticBase: "",
+      })
+      // Once for the element.
+      expect(console.error).toBeCalledTimes(1)
+    })
+
+    it("should skip bad query options", () => {
+      location.search = "?options=invalidJson"
       expect(getOptions()).toStrictEqual({
         base: "",
         csStaticBase: "",
-        logLevel: 2,
       })
+      // Once for the element, once for the query.
+      expect(console.error).toBeCalledTimes(2)
     })
   })
 
