@@ -54,6 +54,8 @@ There are several differences, however. Here is what is needed:
   - `apt-get install -y build-essential` - used by VS Code
 - `rsync` and `unzip`
   - used for code-server releases
+- `bats`
+  - used to run script unit tests
 
 ## Development Workflow
 
