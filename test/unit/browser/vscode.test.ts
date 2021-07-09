@@ -5,6 +5,7 @@ import { JSDOM } from "jsdom"
 import {
   getNlsConfiguration,
   nlsConfigElementId,
+  registerRequireOnSelf,
   setBodyBackgroundToThemeBackgroundColor,
 } from "../../../src/browser/pages/vscode"
 
@@ -173,6 +174,181 @@ describe("vscode", () => {
       expect(document.body.style.backgroundColor).toBe("rgb(255, 50, 112)")
 
       localStorage.removeItem("colorThemeData")
+    })
+  })
+  describe("registerRequireOnSelf", () => {
+    beforeAll(() => {
+      const { window } = new JSDOM()
+      // @ts-expect-error We know these are the exact same type
+      // but we need to do this for the test to work
+      global.self = window.self
+      global.window = window as unknown as Window & typeof globalThis
+      global.document = window.document
+      global.navigator = window.navigator
+      global.location = location as Location
+    })
+
+    beforeEach(() => {
+      jest.clearAllMocks()
+    })
+
+    afterEach(() => {
+      jest.resetModules()
+    })
+
+    afterAll(() => {
+      jest.restoreAllMocks()
+
+      global.window = undefined as unknown as Window & typeof globalThis
+      global.document = undefined as unknown as Document & typeof globalThis
+      global.navigator = undefined as unknown as Navigator & typeof globalThis
+      global.location = undefined as unknown as Location & typeof globalThis
+    })
+    it("should throw an error if self is undefined", () => {
+      const options = {
+        base: "/",
+        csStaticBase: "/hello",
+        logLevel: 1,
+      }
+      const nlsConfig = {
+        first: "Jane",
+        last: "Doe",
+        locale: "en",
+        availableLanguages: {},
+      }
+      const errorMsgPrefix = "[vscode]"
+      const errorMessage = `${errorMsgPrefix} Could not register require on self. self is undefined.`
+      expect(() => {
+        registerRequireOnSelf({
+          // @ts-expect-error We are checking what happens if self is undefined.
+          self: undefined,
+          window: global.window,
+          nlsConfig: nlsConfig,
+          options,
+        })
+      }).toThrowError(errorMessage)
+    })
+    it("should throw an error if window is undefined", () => {
+      const options = {
+        base: "/",
+        csStaticBase: "/hello",
+        logLevel: 1,
+      }
+      const nlsConfig = {
+        first: "Jane",
+        last: "Doe",
+        locale: "en",
+        availableLanguages: {},
+      }
+      const errorMsgPrefix = "[vscode]"
+      const errorMessage = `${errorMsgPrefix} Could not register require on self. window is undefined.`
+      const mockSelf = {} as Window & typeof globalThis
+      expect(() => {
+        registerRequireOnSelf({
+          self: mockSelf,
+          // @ts-expect-error We need to test if window is undefined
+          window: undefined,
+          nlsConfig: nlsConfig,
+          options,
+        })
+      }).toThrowError(errorMessage)
+    })
+    it("should throw an error if options.csStaticBase is undefined or an empty string", () => {
+      const options = {
+        base: "/",
+        csStaticBase: "",
+        logLevel: 1,
+      }
+      const nlsConfig = {
+        first: "Jane",
+        last: "Doe",
+        locale: "en",
+        availableLanguages: {},
+      }
+      const errorMsgPrefix = "[vscode]"
+      const errorMessage = `${errorMsgPrefix} Could not register require on self. options or options.csStaticBase is undefined or missing.`
+      const mockSelf = {} as Window & typeof globalThis
+      expect(() => {
+        registerRequireOnSelf({
+          self: mockSelf,
+          window: window,
+          nlsConfig: nlsConfig,
+          options,
+        })
+      }).toThrowError(errorMessage)
+      expect(() => {
+        registerRequireOnSelf({
+          self: mockSelf,
+          window: window,
+          nlsConfig: nlsConfig,
+          // @ts-expect-error We need to check what happens when options is undefined
+          options: undefined,
+        })
+      }).toThrowError(errorMessage)
+    })
+    it("should throw an error if nlsConfig is undefined", () => {
+      const options = {
+        base: "/",
+        csStaticBase: "/",
+        logLevel: 1,
+      }
+      const errorMsgPrefix = "[vscode]"
+      const errorMessage = `${errorMsgPrefix} Could not register require on self. nlsConfig is undefined.`
+      const mockSelf = {} as Window & typeof globalThis
+      expect(() => {
+        registerRequireOnSelf({
+          self: mockSelf,
+          window: window,
+          // @ts-expect-error We need to check that it works when this is undefined
+          nlsConfig: undefined,
+          options,
+        })
+      }).toThrowError(errorMessage)
+    })
+    it("should declare require on self", () => {
+      const options = {
+        base: "/",
+        csStaticBase: "/",
+        logLevel: 1,
+      }
+      const nlsConfig = {
+        first: "Jane",
+        last: "Doe",
+        locale: "en",
+        availableLanguages: {},
+      }
+      const mockSelf = {} as Window & typeof globalThis
+      registerRequireOnSelf({
+        self: mockSelf,
+        window: window,
+        nlsConfig: nlsConfig,
+        options,
+      })
+
+      const hasRequireProperty = Object.prototype.hasOwnProperty.call(mockSelf, "require")
+      expect(hasRequireProperty).toBeTruthy()
+    })
+    it("should return true if it registered succesfully", () => {
+      const options = {
+        base: "/",
+        csStaticBase: "/",
+        logLevel: 1,
+      }
+      const nlsConfig = {
+        first: "Jane",
+        last: "Doe",
+        locale: "en",
+        availableLanguages: {},
+      }
+      const mockSelf = {} as Window & typeof globalThis
+      const didRegister = registerRequireOnSelf({
+        self: mockSelf,
+        window: window,
+        nlsConfig: nlsConfig,
+        options,
+      })
+
+      expect(didRegister).toBe(true)
     })
   })
 })

@@ -1,4 +1,4 @@
-import { getOptions } from "../../common/util"
+import { getOptions, Options } from "../../common/util"
 import "../register"
 
 const options = getOptions()
@@ -54,6 +54,84 @@ export function getNlsConfiguration(document: Document) {
   return JSON.parse(nlsConfig) as NlsConfiguration
 }
 
+type RegisterRequireOnSelfType = {
+  // NOTE@jsjoeio
+  // We get the self type by looking at window.self.
+  self: Window & typeof globalThis
+  window: Window
+  nlsConfig: NlsConfiguration
+  options: Options
+}
+
+type RequireOnSelfType = {
+  baseUrl: string
+  recordStats: boolean
+  paths: {
+    [key: string]: string
+  }
+  "vs/nls": NlsConfiguration
+}
+
+/**
+ * A helper function to register the require on self.
+ *
+ * The require property is used by VSCode/code-server
+ * to load files.
+ *
+ * We extracted the logic into a function so that
+ * it's easier to test.
+ **/
+export function registerRequireOnSelf({ self, window, nlsConfig, options }: RegisterRequireOnSelfType) {
+  const errorMsgPrefix = "[vscode]"
+
+  if (!self) {
+    throw new Error(`${errorMsgPrefix} Could not register require on self. self is undefined.`)
+  }
+
+  if (!window) {
+    throw new Error(`${errorMsgPrefix} Could not register require on self. window is undefined.`)
+  }
+
+  if (!options || !options.csStaticBase) {
+    throw new Error(
+      `${errorMsgPrefix} Could not register require on self. options or options.csStaticBase is undefined or missing.`,
+    )
+  }
+
+  if (!nlsConfig) {
+    throw new Error(`${errorMsgPrefix} Could not register require on self. nlsConfig is undefined.`)
+  }
+
+  const requireOnSelf: RequireOnSelfType = {
+    // Without the full URL VS Code will try to load file://.
+    baseUrl: `${window.location.origin}${options.csStaticBase}/lib/vscode/out`,
+    recordStats: true,
+    paths: {
+      "vscode-textmate": `../node_modules/vscode-textmate/release/main`,
+      "vscode-oniguruma": `../node_modules/vscode-oniguruma/release/main`,
+      xterm: `../node_modules/xterm/lib/xterm.js`,
+      "xterm-addon-search": `../node_modules/xterm-addon-search/lib/xterm-addon-search.js`,
+      "xterm-addon-unicode11": `../node_modules/xterm-addon-unicode11/lib/xterm-addon-unicode11.js`,
+      "xterm-addon-webgl": `../node_modules/xterm-addon-webgl/lib/xterm-addon-webgl.js`,
+      "tas-client-umd": `../node_modules/tas-client-umd/lib/tas-client-umd.js`,
+      "iconv-lite-umd": `../node_modules/iconv-lite-umd/lib/iconv-lite-umd.js`,
+      jschardet: `../node_modules/jschardet/dist/jschardet.min.js`,
+    },
+    "vs/nls": nlsConfig,
+  }
+
+  // TODO@jsjoeio
+  // I'm not sure how to properly type cast this
+  // This might be our best bet
+  // Source: https://stackoverflow.com/a/30740935
+  type FixMeLater = any
+  ;(self.require as FixMeLater) = requireOnSelf
+
+  // If everything worked, then return true
+  // so the caller knows it registered succesfully
+  return true
+}
+
 try {
   const nlsConfig = getNlsConfiguration(document)
   if (nlsConfig._resolvedLanguagePackCoreLocation) {
@@ -74,23 +152,12 @@ try {
         .catch(cb)
     }
   }
-  ;(self.require as any) = {
-    // Without the full URL VS Code will try to load file://.
-    baseUrl: `${window.location.origin}${options.csStaticBase}/lib/vscode/out`,
-    recordStats: true,
-    paths: {
-      "vscode-textmate": `../node_modules/vscode-textmate/release/main`,
-      "vscode-oniguruma": `../node_modules/vscode-oniguruma/release/main`,
-      xterm: `../node_modules/xterm/lib/xterm.js`,
-      "xterm-addon-search": `../node_modules/xterm-addon-search/lib/xterm-addon-search.js`,
-      "xterm-addon-unicode11": `../node_modules/xterm-addon-unicode11/lib/xterm-addon-unicode11.js`,
-      "xterm-addon-webgl": `../node_modules/xterm-addon-webgl/lib/xterm-addon-webgl.js`,
-      "tas-client-umd": `../node_modules/tas-client-umd/lib/tas-client-umd.js`,
-      "iconv-lite-umd": `../node_modules/iconv-lite-umd/lib/iconv-lite-umd.js`,
-      jschardet: `../node_modules/jschardet/dist/jschardet.min.js`,
-    },
-    "vs/nls": nlsConfig,
-  }
+  registerRequireOnSelf({
+    self,
+    window,
+    nlsConfig,
+    options,
+  })
 } catch (error) {
   console.error(error)
 }
