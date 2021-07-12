@@ -328,27 +328,5 @@ describe("vscode", () => {
       const hasRequireProperty = Object.prototype.hasOwnProperty.call(mockSelf, "require")
       expect(hasRequireProperty).toBeTruthy()
     })
-    it("should return true if it registered succesfully", () => {
-      const options = {
-        base: "/",
-        csStaticBase: "/",
-        logLevel: 1,
-      }
-      const nlsConfig = {
-        first: "Jane",
-        last: "Doe",
-        locale: "en",
-        availableLanguages: {},
-      }
-      const mockSelf = {} as Window & typeof globalThis
-      const didRegister = registerRequireOnSelf({
-        self: mockSelf,
-        origin: "localthost",
-        nlsConfig: nlsConfig,
-        options,
-      })
-
-      expect(didRegister).toBe(true)
-    })
   })
 })

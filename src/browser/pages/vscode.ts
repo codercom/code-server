@@ -126,10 +126,6 @@ export function registerRequireOnSelf({ self, origin, nlsConfig, options }: Regi
   // Source: https://stackoverflow.com/a/30740935
   type FixMeLater = any
   ;(self.require as FixMeLater) = requireOnSelf
-
-  // If everything worked, then return true
-  // so the caller knows it registered succesfully
-  return true
 }
 
 try {
