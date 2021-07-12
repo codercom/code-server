@@ -58,7 +58,7 @@ type RegisterRequireOnSelfType = {
   // NOTE@jsjoeio
   // We get the self type by looking at window.self.
   self: Window & typeof globalThis
-  window: Window
+  origin: string
   nlsConfig: NlsConfiguration
   options: Options
 }
@@ -81,15 +81,15 @@ type RequireOnSelfType = {
  * We extracted the logic into a function so that
  * it's easier to test.
  **/
-export function registerRequireOnSelf({ self, window, nlsConfig, options }: RegisterRequireOnSelfType) {
+export function registerRequireOnSelf({ self, origin, nlsConfig, options }: RegisterRequireOnSelfType) {
   const errorMsgPrefix = "[vscode]"
 
   if (!self) {
     throw new Error(`${errorMsgPrefix} Could not register require on self. self is undefined.`)
   }
 
-  if (!window) {
-    throw new Error(`${errorMsgPrefix} Could not register require on self. window is undefined.`)
+  if (!origin) {
+    throw new Error(`${errorMsgPrefix} Could not register require on self. origin is undefined or missing.`)
   }
 
   if (!options || !options.csStaticBase) {
@@ -104,7 +104,7 @@ export function registerRequireOnSelf({ self, window, nlsConfig, options }: Regi
 
   const requireOnSelf: RequireOnSelfType = {
     // Without the full URL VS Code will try to load file://.
-    baseUrl: `${window.location.origin}${options.csStaticBase}/lib/vscode/out`,
+    baseUrl: `${origin}${options.csStaticBase}/lib/vscode/out`,
     recordStats: true,
     paths: {
       "vscode-textmate": `../node_modules/vscode-textmate/release/main`,
@@ -154,9 +154,9 @@ try {
   }
   registerRequireOnSelf({
     self,
-    window,
     nlsConfig,
     options,
+    origin: window.location.origin,
   })
 } catch (error) {
   console.error(error)

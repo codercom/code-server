@@ -241,13 +241,13 @@ describe("vscode", () => {
         availableLanguages: {},
       }
       const errorMsgPrefix = "[vscode]"
-      const errorMessage = `${errorMsgPrefix} Could not register require on self. window is undefined.`
+      const errorMessage = `${errorMsgPrefix} Could not register require on self. origin is undefined or missing.`
       const mockSelf = {} as Window & typeof globalThis
       expect(() => {
         registerRequireOnSelf({
           self: mockSelf,
           // @ts-expect-error We need to test if window is undefined
-          window: undefined,
+          origin: undefined,
           nlsConfig: nlsConfig,
           options,
         })
@@ -271,7 +271,7 @@ describe("vscode", () => {
       expect(() => {
         registerRequireOnSelf({
           self: mockSelf,
-          window: window,
+          origin: "localhost",
           nlsConfig: nlsConfig,
           options,
         })
@@ -279,7 +279,7 @@ describe("vscode", () => {
       expect(() => {
         registerRequireOnSelf({
           self: mockSelf,
-          window: window,
+          origin: "localhost",
           nlsConfig: nlsConfig,
           // @ts-expect-error We need to check what happens when options is undefined
           options: undefined,
@@ -298,7 +298,7 @@ describe("vscode", () => {
       expect(() => {
         registerRequireOnSelf({
           self: mockSelf,
-          window: window,
+          origin: "localthost",
           // @ts-expect-error We need to check that it works when this is undefined
           nlsConfig: undefined,
           options,
@@ -320,7 +320,7 @@ describe("vscode", () => {
       const mockSelf = {} as Window & typeof globalThis
       registerRequireOnSelf({
         self: mockSelf,
-        window: window,
+        origin: "localthost",
         nlsConfig: nlsConfig,
         options,
       })
@@ -343,7 +343,7 @@ describe("vscode", () => {
       const mockSelf = {} as Window & typeof globalThis
       const didRegister = registerRequireOnSelf({
         self: mockSelf,
-        window: window,
+        origin: "localthost",
         nlsConfig: nlsConfig,
         options,
       })
