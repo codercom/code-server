@@ -140,7 +140,6 @@ try {
   // Source: https://stackoverflow.com/a/30740935
   type FixMeLater = any
   ;(self.require as FixMeLater) = getLoader({
-    self,
     nlsConfig,
     options,
     origin: window.location.origin,
