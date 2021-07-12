@@ -177,33 +177,6 @@ describe("vscode", () => {
     })
   })
   describe("registerRequireOnSelf", () => {
-    beforeAll(() => {
-      const { window } = new JSDOM()
-      // @ts-expect-error We know these are the exact same type
-      // but we need to do this for the test to work
-      global.self = window.self
-      global.window = window as unknown as Window & typeof globalThis
-      global.document = window.document
-      global.navigator = window.navigator
-      global.location = location as Location
-    })
-
-    beforeEach(() => {
-      jest.clearAllMocks()
-    })
-
-    afterEach(() => {
-      jest.resetModules()
-    })
-
-    afterAll(() => {
-      jest.restoreAllMocks()
-
-      global.window = undefined as unknown as Window & typeof globalThis
-      global.document = undefined as unknown as Document & typeof globalThis
-      global.navigator = undefined as unknown as Navigator & typeof globalThis
-      global.location = undefined as unknown as Location & typeof globalThis
-    })
     it("should throw an error if self is undefined", () => {
       const options = {
         base: "/",
