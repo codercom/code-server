@@ -54,16 +54,13 @@ export function getNlsConfiguration(document: Document) {
   return JSON.parse(nlsConfig) as NlsConfiguration
 }
 
-type RegisterRequireOnSelfType = {
-  // NOTE@jsjoeio
-  // We get the self type by looking at window.self.
-  self: Window & typeof globalThis
+type GetLoaderParams = {
   origin: string
   nlsConfig: NlsConfiguration
   options: Options
 }
 
-type RequireOnSelfType = {
+type Loader = {
   baseUrl: string
   recordStats: boolean
   paths: {
@@ -73,36 +70,30 @@ type RequireOnSelfType = {
 }
 
 /**
- * A helper function to register the require on self.
+ * A helper function to get the require loader
  *
- * The require property is used by VSCode/code-server
+ * This used by VSCode/code-server
  * to load files.
  *
  * We extracted the logic into a function so that
  * it's easier to test.
  **/
-export function registerRequireOnSelf({ self, origin, nlsConfig, options }: RegisterRequireOnSelfType) {
+export function getLoader({ origin, nlsConfig, options }: GetLoaderParams) {
   const errorMsgPrefix = "[vscode]"
 
-  if (!self) {
-    throw new Error(`${errorMsgPrefix} Could not register require on self. self is undefined.`)
-  }
-
   if (!origin) {
-    throw new Error(`${errorMsgPrefix} Could not register require on self. origin is undefined or missing.`)
+    throw new Error(`${errorMsgPrefix} Could not get loader. origin is undefined or missing.`)
   }
 
   if (!options || !options.csStaticBase) {
-    throw new Error(
-      `${errorMsgPrefix} Could not register require on self. options or options.csStaticBase is undefined or missing.`,
-    )
+    throw new Error(`${errorMsgPrefix} Could not get loader. options or options.csStaticBase is undefined or missing.`)
   }
 
   if (!nlsConfig) {
-    throw new Error(`${errorMsgPrefix} Could not register require on self. nlsConfig is undefined.`)
+    throw new Error(`${errorMsgPrefix} Could not get loader. nlsConfig is undefined.`)
   }
 
-  const requireOnSelf: RequireOnSelfType = {
+  const loader: Loader = {
     // Without the full URL VS Code will try to load file://.
     baseUrl: `${origin}${options.csStaticBase}/lib/vscode/out`,
     recordStats: true,
@@ -120,12 +111,7 @@ export function registerRequireOnSelf({ self, origin, nlsConfig, options }: Regi
     "vs/nls": nlsConfig,
   }
 
-  // TODO@jsjoeio
-  // I'm not sure how to properly type cast this
-  // This might be our best bet
-  // Source: https://stackoverflow.com/a/30740935
-  type FixMeLater = any
-  ;(self.require as FixMeLater) = requireOnSelf
+  return loader
 }
 
 try {
@@ -148,7 +134,12 @@ try {
         .catch(cb)
     }
   }
-  registerRequireOnSelf({
+  // TODO@jsjoeio
+  // I'm not sure how to properly type cast this
+  // This might be our best bet
+  // Source: https://stackoverflow.com/a/30740935
+  type FixMeLater = any
+  ;(self.require as FixMeLater) = getLoader({
     self,
     nlsConfig,
     options,
