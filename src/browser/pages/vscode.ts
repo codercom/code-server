@@ -1,4 +1,4 @@
-import { getOptions } from "../../common/util"
+import { getOptions, Options } from "../../common/util"
 import "../register"
 
 const options = getOptions()
@@ -54,6 +54,66 @@ export function getNlsConfiguration(document: Document) {
   return JSON.parse(nlsConfig) as NlsConfiguration
 }
 
+type GetLoaderParams = {
+  origin: string
+  nlsConfig: NlsConfiguration
+  options: Options
+}
+
+type Loader = {
+  baseUrl: string
+  recordStats: boolean
+  paths: {
+    [key: string]: string
+  }
+  "vs/nls": NlsConfiguration
+}
+
+/**
+ * A helper function to get the require loader
+ *
+ * This used by VSCode/code-server
+ * to load files.
+ *
+ * We extracted the logic into a function so that
+ * it's easier to test.
+ **/
+export function getLoader({ origin, nlsConfig, options }: GetLoaderParams) {
+  const errorMsgPrefix = "[vscode]"
+
+  if (!origin) {
+    throw new Error(`${errorMsgPrefix} Could not get loader. origin is undefined or missing.`)
+  }
+
+  if (!options || !options.csStaticBase) {
+    throw new Error(`${errorMsgPrefix} Could not get loader. options or options.csStaticBase is undefined or missing.`)
+  }
+
+  if (!nlsConfig) {
+    throw new Error(`${errorMsgPrefix} Could not get loader. nlsConfig is undefined.`)
+  }
+
+  const loader: Loader = {
+    // Without the full URL VS Code will try to load file://.
+    baseUrl: `${origin}${options.csStaticBase}/lib/vscode/out`,
+    recordStats: true,
+    paths: {
+      "vscode-textmate": `../node_modules/vscode-textmate/release/main`,
+      "vscode-oniguruma": `../node_modules/vscode-oniguruma/release/main`,
+      xterm: `../node_modules/xterm/lib/xterm.js`,
+      "xterm-addon-search": `../node_modules/xterm-addon-search/lib/xterm-addon-search.js`,
+      "xterm-addon-unicode11": `../node_modules/xterm-addon-unicode11/lib/xterm-addon-unicode11.js`,
+      "xterm-addon-webgl": `../node_modules/xterm-addon-webgl/lib/xterm-addon-webgl.js`,
+      "tas-client-umd": `../node_modules/tas-client-umd/lib/tas-client-umd.js`,
+      "iconv-lite-umd": `../node_modules/iconv-lite-umd/lib/iconv-lite-umd.js`,
+      jschardet: `../node_modules/jschardet/dist/jschardet.min.js`,
+    },
+    "vs/nls": nlsConfig,
+  }
+
+  return loader
+}
+
 try {
   const nlsConfig = getNlsConfiguration(document)
   if (nlsConfig._resolvedLanguagePackCoreLocation) {
@@ -74,23 +134,16 @@ try {
         .catch(cb)
     }
   }
-  ;(self.require as any) = {
-    // Without the full URL VS Code will try to load file://.
-    baseUrl: `${window.location.origin}${options.csStaticBase}/lib/vscode/out`,
-    recordStats: true,
-    paths: {
-      "vscode-textmate": `../node_modules/vscode-textmate/release/main`,
-      "vscode-oniguruma": `../node_modules/vscode-oniguruma/release/main`,
-      xterm: `../node_modules/xterm/lib/xterm.js`,
-      "xterm-addon-search": `../node_modules/xterm-addon-search/lib/xterm-addon-search.js`,
-      "xterm-addon-unicode11": `../node_modules/xterm-addon-unicode11/lib/xterm-addon-unicode11.js`,
-      "xterm-addon-webgl": `../node_modules/xterm-addon-webgl/lib/xterm-addon-webgl.js`,
-      "tas-client-umd": `../node_modules/tas-client-umd/lib/tas-client-umd.js`,
-      "iconv-lite-umd": `../node_modules/iconv-lite-umd/lib/iconv-lite-umd.js`,
-      jschardet: `../node_modules/jschardet/dist/jschardet.min.js`,
-    },
-    "vs/nls": nlsConfig,
-  }
+  // TODO@jsjoeio
+  // I'm not sure how to properly type cast this
+  // This might be our best bet
+  // Source: https://stackoverflow.com/a/30740935
+  type FixMeLater = any
+  ;(self.require as FixMeLater) = getLoader({
+    nlsConfig,
+    options,
+    origin: window.location.origin,
+  })
 } catch (error) {
   console.error(error)
 }

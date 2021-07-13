@@ -5,6 +5,7 @@ import { JSDOM } from "jsdom"
 import {
   getNlsConfiguration,
   nlsConfigElementId,
+  getLoader,
   setBodyBackgroundToThemeBackgroundColor,
 } from "../../../src/browser/pages/vscode"
 
@@ -173,6 +174,118 @@ describe("vscode", () => {
       expect(document.body.style.backgroundColor).toBe("rgb(255, 50, 112)")
 
       localStorage.removeItem("colorThemeData")
+    })
+  })
+  describe("getLoader", () => {
+    it("should throw an error if window is undefined", () => {
+      const options = {
+        base: "/",
+        csStaticBase: "/hello",
+        logLevel: 1,
+      }
+      const nlsConfig = {
+        first: "Jane",
+        last: "Doe",
+        locale: "en",
+        availableLanguages: {},
+      }
+      const errorMsgPrefix = "[vscode]"
+      const errorMessage = `${errorMsgPrefix} Could not get loader. origin is undefined or missing.`
+      expect(() => {
+        getLoader({
+          // @ts-expect-error We need to test if window is undefined
+          origin: undefined,
+          nlsConfig: nlsConfig,
+          options,
+        })
+      }).toThrowError(errorMessage)
+    })
+    it("should throw an error if options.csStaticBase is undefined or an empty string", () => {
+      const options = {
+        base: "/",
+        csStaticBase: "",
+        logLevel: 1,
+      }
+      const nlsConfig = {
+        first: "Jane",
+        last: "Doe",
+        locale: "en",
+        availableLanguages: {},
+      }
+      const errorMsgPrefix = "[vscode]"
+      const errorMessage = `${errorMsgPrefix} Could not get loader. options or options.csStaticBase is undefined or missing.`
+      expect(() => {
+        getLoader({
+          origin: "localhost",
+          nlsConfig: nlsConfig,
+          options,
+        })
+      }).toThrowError(errorMessage)
+      expect(() => {
+        getLoader({
+          origin: "localhost",
+          nlsConfig: nlsConfig,
+          // @ts-expect-error We need to check what happens when options is undefined
+          options: undefined,
+        })
+      }).toThrowError(errorMessage)
+    })
+    it("should throw an error if nlsConfig is undefined", () => {
+      const options = {
+        base: "/",
+        csStaticBase: "/",
+        logLevel: 1,
+      }
+      const errorMsgPrefix = "[vscode]"
+      const errorMessage = `${errorMsgPrefix} Could not get loader. nlsConfig is undefined.`
+      expect(() => {
+        getLoader({
+          origin: "localthost",
+          // @ts-expect-error We need to check that it works when this is undefined
+          nlsConfig: undefined,
+          options,
+        })
+      }).toThrowError(errorMessage)
+    })
+    it("should return a loader object", () => {
+      const options = {
+        base: "/",
+        csStaticBase: "/",
+        logLevel: 1,
+      }
+      const nlsConfig = {
+        first: "Jane",
+        last: "Doe",
+        locale: "en",
+        availableLanguages: {},
+      }
+      const loader = getLoader({
+        origin: "localhost",
+        nlsConfig: nlsConfig,
+        options,
+      })
+
+      expect(loader).toStrictEqual({
+        baseUrl: "localhost//lib/vscode/out",
+        paths: {
+          "iconv-lite-umd": "../node_modules/iconv-lite-umd/lib/iconv-lite-umd.js",
+          jschardet: "../node_modules/jschardet/dist/jschardet.min.js",
+          "tas-client-umd": "../node_modules/tas-client-umd/lib/tas-client-umd.js",
+          "vscode-oniguruma": "../node_modules/vscode-oniguruma/release/main",
+          "vscode-textmate": "../node_modules/vscode-textmate/release/main",
+          xterm: "../node_modules/xterm/lib/xterm.js",
+          "xterm-addon-search": "../node_modules/xterm-addon-search/lib/xterm-addon-search.js",
+          "xterm-addon-unicode11": "../node_modules/xterm-addon-unicode11/lib/xterm-addon-unicode11.js",
+          "xterm-addon-webgl": "../node_modules/xterm-addon-webgl/lib/xterm-addon-webgl.js",
+        },
+        recordStats: true,
+        "vs/nls": {
+          availableLanguages: {},
+          first: "Jane",
+          last: "Doe",
+          locale: "en",
+        },
+      })
     })
   })
 })
